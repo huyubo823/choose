@@ -363,31 +363,31 @@ document.addEventListener("alpine:init", () => {
     },
 
     // ---- 格式化食材数量 ----
-    formatAmount(item) {
-      if (Number.isInteger(item.a)) {
-        return item.a;
-      }
-      return item.a;
+    formatAmount(a) {
+      return Number.isInteger(a) ? a : Number(a).toFixed(1).replace(/\.0$/, "");
     },
 
     // ---- 复制清单到剪贴板 ----
     async copyList() {
-      let text = "🛒 食材清单\n";
-      text += "━━━━━━━━━━━━\n\n";
+      const lines = [];
+      let total = 0;
 
       this.groupedIngredients.forEach((group) => {
-        text += `【${group.category}】\n`;
+        lines.push(`【${group.category}】`);
         group.items.forEach((item) => {
-          text += `  · ${item.n} — ${this.formatAmount(item.a)}${item.u}`;
-          if (item.s) text += " ⚡";
-          text += "\n";
+          const amt = this.formatAmount(item.a);
+          const mark = item.s ? " *" : "";
+          lines.push(`  ${item.n}  ${amt}${item.u}${mark}`);
+          total++;
         });
-        text += "\n";
+        lines.push("");
       });
+
+      const text = `食材清单 · 共${total}种\n\n` + lines.join("\n");
 
       try {
         await navigator.clipboard.writeText(text);
-        this.showToast("已复制到剪贴板 ✅");
+        this.showToast("已复制 ✅");
       } catch {
         this.showToast("复制失败，请截图保存");
       }
