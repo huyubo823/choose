@@ -510,7 +510,7 @@
               <span class="ingredient-name" :class="{ special: item.s }" x-text="item.n"></span>
               <span x-show="item.s" class="ingredient-badge">特殊</span>
             </div>
-            <span class="ingredient-amount" x-text="formatAmount(item.a) + item.u"></span>
+            <span class="ingredient-amount" x-text="formatAmount(item) + item.u"></span>
           </div>
         </template>
       </div>

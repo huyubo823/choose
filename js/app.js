@@ -362,8 +362,10 @@ document.addEventListener("alpine:init", () => {
       }, 250);
     },
 
-    // ---- 格式化食材数量 ----
-    formatAmount(a) {
+    // ---- 格式化食材数量 (兼容 item 对象或纯数值) ----
+    formatAmount(val) {
+      const a = (val != null && typeof val === "object") ? val.a : val;
+      if (a == null || isNaN(a)) return "—";
       return Number.isInteger(a) ? a : Number(a).toFixed(1).replace(/\.0$/, "");
     },
 
@@ -375,7 +377,7 @@ document.addEventListener("alpine:init", () => {
       this.groupedIngredients.forEach((group) => {
         lines.push(`【${group.category}】`);
         group.items.forEach((item) => {
-          const amt = this.formatAmount(item.a);
+          const amt = this.formatAmount(item);
           const mark = item.s ? " *" : "";
           lines.push(`  ${item.n}  ${amt}${item.u}${mark}`);
           total++;
