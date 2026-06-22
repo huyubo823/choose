@@ -1,0 +1,16 @@
+{
+  "deploy": "git push origin main",
+  "test_url": "https://huyubo823.github.io/choose/",
+  "wait_after_deploy": 20,
+  "viewport": "390x844",
+  "verify_checks": [
+    "No JS errors in console",
+    "6 word cards visible on first page",
+    "Click first word → 3 set cards appear",
+    "Click first set + 生成食材清单 → ingredient list appears",
+    "All ingredient amounts show real numbers, no undefined/NaN/—",
+    "Copy button works and clipboard text is clean"
+  ],
+  "mock_setup": null,
+  "test_script": null
+}
