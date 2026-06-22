@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>选菜软件</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<style>
+  /* ====== Design Tokens ====== */
+  :root {
+    --color-bg:              oklch(1 0 0);
+    --color-surface:         oklch(0.97 0 0);
+    --color-ink:             oklch(0.15 0 0);
+    --color-primary:         oklch(0.52 0.185 355);
+    --color-primary-hover:   oklch(0.47 0.195 355);
+    --color-primary-subtle:  oklch(0.95 0.02 355);
+    --color-accent:          oklch(0.55 0.08 75);
+    --color-accent-subtle:   oklch(0.95 0.03 75);
+    --color-muted:           oklch(0.55 0 0);
+    --color-border:          oklch(0.88 0 0);
+    --color-success:         oklch(0.55 0.14 160);
+
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .ease-out-expo { transition-timing-function: var(--ease-out-expo); }
+  .ease-out-quart { transition-timing-function: var(--ease-out-quart); }
+
+  /* ====== Tailwind Overrides ====== */
+  .bg-primary { background-color: var(--color-primary); }
+  .bg-primary-subtle { background-color: var(--color-primary-subtle); }
+  .bg-surface { background-color: var(--color-surface); }
+  .text-primary { color: var(--color-primary); }
+  .text-muted { color: var(--color-muted); }
+  .text-ink { color: var(--color-ink); }
+  .border-primary { border-color: var(--color-primary); }
+  .border-surface { border-color: var(--color-border); }
+  .accent-bg { background-color: var(--color-accent-subtle); }
+  .accent-text { color: var(--color-accent); }
+  .ring-primary { --tw-ring-color: var(--color-primary); }
+
+  /* ====== Base ====== */
+  * { -webkit-tap-highlight-color: transparent; }
+  html {
+    font-family: var(--font-stack);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+  body {
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    background: var(--color-bg);
+  }
+  #app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 1.5rem env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ====== Progress Dots ====== */
+  .progress-dots {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 1.5rem 0 2rem;
+  }
+  .progress-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-border);
+    transition: all 250ms var(--ease-out-quart);
+  }
+  .progress-dot.active {
+    background: var(--color-primary);
+    width: 1.5rem;
+    border-radius: 0.25rem;
+  }
+  .progress-dot.done {
+    background: var(--color-success);
+  }
+
+  /* ====== View Container ====== */
+  .view-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .view-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    animation: fadeSlideIn 300ms var(--ease-out-expo);
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .view-panel { animation: none; }
+  }
+
+  /* ====== Scenario Word Cards ====== */
+  .word-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .word-card {
+    aspect-ratio: 1;
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 150ms var(--ease-out-quart);
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .word-card:active {
+    transform: scale(0.96);
+    background: var(--color-primary-subtle);
+    border-color: var(--color-primary);
+  }
+  @media (hover: hover) {
+    .word-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 1px var(--color-primary);
+    }
+  }
+  .word-card .word-text {
+    font-size: clamp(1rem, 3.5vw, 1.25rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+    text-wrap: balance;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .word-card .word-desc {
+    font-size: 0.6875rem;
+    color: var(--color-muted);
+    text-align: center;
+    padding: 0 0.25rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .word-card.refreshing {
+    animation: cardPulse 350ms var(--ease-out-quart);
+  }
+  @keyframes cardPulse {
+    0%   { opacity: 0; transform: scale(0.92); }
+    60%  { opacity: 1; transform: scale(1.02); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ====== Meal Set Cards ====== */
+  .set-card {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 200ms var(--ease-out-quart);
+    position: relative;
+  }
+  .set-card:active { transform: scale(0.985); }
+  .set-card.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    box-shadow: 0 0 0 2px var(--color-primary-subtle);
+  }
+  .set-card .set-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+  .set-card .recipe-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    line-height: 1.4;
+  }
+  .set-card .recipe-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+  }
+  .set-card .recipe-cat {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+  }
+  .set-card .recipe-cat.meat { background: oklch(0.93 0.03 20); color: oklch(0.45 0.12 20); }
+  .set-card .recipe-cat.veg  { background: oklch(0.93 0.04 140); color: oklch(0.42 0.12 140); }
+  .set-card .recipe-cat.soup { background: oklch(0.93 0.04 220); color: oklch(0.42 0.10 220); }
+
+  /* ====== Buttons ====== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 150ms var(--ease-out-quart);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-stack);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+  }
+  @media (hover: hover) {
+    .btn-primary:hover { background: var(--color-primary-hover); }
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1.5px solid var(--color-primary);
+  }
+  @media (hover: hover) {
+    .btn-outline:hover { background: var(--color-primary-subtle); }
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-muted);
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+  @media (hover: hover) {
+    .btn-ghost:hover { color: var(--color-ink); }
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* ====== Ingredient List ====== */
+  .ingredient-group {
+    margin-bottom: 1.5rem;
+  }
+  .ingredient-group-header {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .ingredient-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid oklch(0.94 0 0);
+  }
+  .ingredient-row:last-child { border-bottom: none; }
+  .ingredient-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+  .ingredient-name.special { color: var(--color-primary); font-weight: 600; }
+  .ingredient-amount {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .ingredient-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    margin-left: 0.375rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* ====== Toast ====== */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-ink);
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms var(--ease-out-quart);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .toast.visible { opacity: 1; }
+
+  /* ====== Page Title ====== */
+  .page-title {
+    font-size: clamp(1.25rem, 4vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin-bottom: 0.25rem;
+  }
+  .page-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    text-wrap: balance;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ====== Section spacing ====== */
+  .section-gap { gap: 0.75rem; }
+  .sets-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+  /* ====== Step indicator in header ====== */
+  .step-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* ====== Recipe tags ====== */
+  .recipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.375rem;
+  }
+  .recipe-tag {
+    font-size: 0.6875rem;
+    color: var(--color-muted);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  /* ====== Above-480px wrapper ====== */
+  @media (min-width: 481px) {
+    body {
+      background: oklch(0.95 0 0);
+      padding: 2rem 1rem;
+    }
+    #app {
+      background: var(--color-bg);
+      border-radius: 1.5rem;
+      min-height: auto;
+      box-shadow: 0 2px 32px rgba(0,0,0,0.06);
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app" x-data="app">
+
+  <!-- ====== 进度指示器 ====== -->
+  <div class="progress-dots">
+    <div class="progress-dot" :class="{ active: view === 'words', done: view === 'sets' || view === 'list' }"></div>
+    <div class="progress-dot" :class="{ active: view === 'sets', done: view === 'list' }"></div>
+    <div class="progress-dot" :class="{ active: view === 'list' }"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 视图 1：情景词选择                                           -->
+  <!-- ============================================================ -->
+  <div class="view-panel" x-show="view === 'words'" x-transition:enter="transition ease-out-expo duration-300" x-transition:enter-start="opacity-0 translate-y-3" x-transition:leave="transition duration-200" x-transition:leave-end="opacity-0">
+
+    <h1 class="page-title">今天想吃什么感觉？</h1>
+    <p class="page-subtitle">选一个打动你的词，让它来决定今天的午餐</p>
+
+    <div class="word-grid">
+      <template x-for="(word, idx) in words" :key="word.id">
+        <div
+          class="word-card"
+          :class="{ refreshing: refreshing }"
+          :style="`animation-delay: ${idx * 50}ms`"
+          @click="selectWord(word)"
+        >
+          <span class="word-text" x-text="word.word"></span>
+          <span class="word-desc" x-text="word.desc"></span>
+        </div>
+      </template>
+    </div>
+
+    <button class="btn btn-outline w-full" @click="shuffleWords()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      换一批看看
+    </button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 视图 2：套餐选择                                             -->
+  <!-- ============================================================ -->
+  <div class="view-panel" x-show="view === 'sets'" x-transition:enter="transition ease-out-expo duration-300" x-transition:enter-start="opacity-0 translate-y-3" x-transition:leave="transition duration-200" x-transition:leave-end="opacity-0">
+
+    <button class="btn btn-ghost !px-0 !min-h-0 !py-1 mb-3" @click="reset()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      重新选词
+    </button>
+
+    <h2 class="page-title">
+      基于 <span class="text-primary" x-text="selectedWord?.word"></span>
+    </h2>
+    <p class="page-subtitle" x-text="selectedWord?.desc"></p>
+
+    <div class="sets-list">
+      <template x-for="(set, idx) in mealSets" :key="set.id">
+        <div
+          class="set-card"
+          :class="{ selected: selectedSetIndex === idx }"
+          @click="selectSet(idx)"
+        >
+          <div class="set-label" x-text="set.label + ' · ' + setDishCount(set)"></div>
+          <template x-for="recipe in set.recipes" :key="recipe.id">
+            <div style="margin-bottom: 0.35rem;">
+              <span class="recipe-name" x-text="recipe.name"></span>
+              <div class="recipe-meta">
+                <span
+                  class="recipe-cat"
+                  :class="{ meat: recipe.cat === '荤', veg: recipe.cat === '素', soup: recipe.cat === '汤' }"
+                  x-text="recipe.cat"
+                ></span>
+                <div class="recipe-tags">
+                  <template x-for="tag in recipe.tags.slice(0, 3)" :key="tag">
+                    <span class="recipe-tag" x-text="tag"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <button
+      class="btn btn-primary w-full"
+      :disabled="selectedSetIndex === null"
+      @click="generateList()"
+    >
+      生成食材清单
+    </button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 视图 3：食材清单                                             -->
+  <!-- ============================================================ -->
+  <div class="view-panel" x-show="view === 'list'" x-transition:enter="transition ease-out-expo duration-300" x-transition:enter-start="opacity-0 translate-y-3" x-transition:leave="transition duration-200" x-transition:leave-end="opacity-0">
+
+    <button class="btn btn-ghost !px-0 !min-h-0 !py-1 mb-3" @click="backToSets()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      重新选套餐
+    </button>
+
+    <h2 class="page-title">食材清单</h2>
+    <p class="page-subtitle">
+      共 <span class="text-primary font-semibold" x-text="groupedIngredients.reduce((s,g) => s + g.items.length, 0)"></span> 种食材
+    </p>
+
+    <template x-for="group in groupedIngredients" :key="group.category">
+      <div class="ingredient-group">
+        <div class="ingredient-group-header" x-text="group.category"></div>
+        <template x-for="item in group.items" :key="item.n">
+          <div class="ingredient-row">
+            <div>
+              <span class="ingredient-name" :class="{ special: item.s }" x-text="item.n"></span>
+              <span x-show="item.s" class="ingredient-badge">特殊</span>
+            </div>
+            <span class="ingredient-amount" x-text="formatAmount(item) + item.u"></span>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; padding-top: 1.5rem;">
+      <button class="btn btn-primary w-full" @click="copyList()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        复制清单
+      </button>
+      <button class="btn btn-outline w-full" @click="reset()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        再来一次
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== Toast ====== -->
+  <div class="toast" :class="{ visible: toastVisible }" x-text="toastMsg"></div>
+
+</div>
+</body>
+</html>
